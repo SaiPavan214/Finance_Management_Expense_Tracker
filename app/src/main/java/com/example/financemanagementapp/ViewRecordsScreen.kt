@@ -46,6 +46,8 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.text.font.FontStyle
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ViewRecordsScreen(
@@ -173,8 +175,7 @@ enum class FilterOption {
     DAILY,
     WEEKLY,
     MONTHLY
-}
-@RequiresApi(Build.VERSION_CODES.O)
+}@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HeaderRecord(
     currentDate: LocalDate,
@@ -187,14 +188,19 @@ fun HeaderRecord(
 
     // Define the date formats for different filter options
     val dailyFormatter = DateTimeFormatter.ofPattern("EEEE, MMM d, yyyy")
-    val weeklyFormatter = DateTimeFormatter.ofPattern("'Week of' MMM d, yyyy")
     val monthlyFormatter = DateTimeFormatter.ofPattern("MMMM, yyyy")
 
-    // Determine the formatter based on current filter option
-    val formatter = when (currentFilterOption) {
-        FilterOption.DAILY -> dailyFormatter
-        FilterOption.WEEKLY -> weeklyFormatter
-        FilterOption.MONTHLY -> monthlyFormatter
+    // Weekly format is special because it needs to show the start and end of the week
+    val startOfWeek = currentDate.with(java.time.DayOfWeek.MONDAY)
+    val endOfWeek = startOfWeek.plusDays(6)
+    val weeklyFormatter = DateTimeFormatter.ofPattern("MMM d")
+    val weeklyText = "${startOfWeek.format(weeklyFormatter)} - ${endOfWeek.format(weeklyFormatter)}"
+
+    // Determine the displayed text based on current filter option
+    val displayText = when (currentFilterOption) {
+        FilterOption.DAILY -> currentDate.format(dailyFormatter)
+        FilterOption.WEEKLY -> weeklyText
+        FilterOption.MONTHLY -> currentDate.format(monthlyFormatter)
     }
 
     Row(
@@ -214,7 +220,7 @@ fun HeaderRecord(
         }
 
         Text(
-            text = currentDate.format(formatter),
+            text = displayText,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White,
@@ -249,6 +255,7 @@ fun HeaderRecord(
         }
     }
 }
+
 @Composable
 fun DropdownMenuItem(
     onClick: () -> Unit,
@@ -314,19 +321,36 @@ fun ExpenseRecordItem(
                     .padding(8.dp)
             )
 
-            Column(modifier = Modifier
-                .weight(1f)
-                .padding(8.dp)) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(8.dp)
+            ) {
                 Text(text = record.category, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Text(text = record.accountType, fontSize = 14.sp)
+
+//                // Display notes if present
+                record.notes?.let { notes ->
+                    Text(
+                        text = notes,
+                        fontSize = 12.sp,
+                        color = Color.DarkGray, // Darker color for notes
+                        fontStyle = FontStyle.Italic, // Italic text style for notes
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
 
-            Text(
-                text = "$sign${record.amount}",
-                fontSize = 16.sp,
-                color = color,
+            Column(
+                horizontalAlignment = Alignment.End,
                 modifier = Modifier.padding(8.dp)
-            )
+            ) {
+                Text(
+                    text = "$sign${record.amount}",
+                    fontSize = 16.sp,
+                    color = color
+                )
+            }
 
             Row(modifier = Modifier.padding(start = 8.dp)) {
                 IconButton(onClick = { onEdit(record) }) {

@@ -99,7 +99,7 @@ fun AnalysisScreen(
     }
 }
 @Composable
-fun MainScreen(onIncomeClick: () -> Unit, onExpenseClick: () -> Unit) {
+fun MainScreen(onIncomeClick: () -> Unit, onExpenseClick: () -> Unit, onAccountClick: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -113,6 +113,85 @@ fun MainScreen(onIncomeClick: () -> Unit, onExpenseClick: () -> Unit) {
         Button(onClick = onExpenseClick, modifier = Modifier.fillMaxWidth().padding(8.dp)) {
             Text(text = "Expense Analysis")
         }
+        Button(onClick = onAccountClick, modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+            Text(text = "Account Analysis")
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun AccountAnalysisScreen(
+    expenseRecords: List<ExpenseRecordEntity>,
+    currentYearMonth: YearMonth,
+    onPrevClick: () -> Unit,
+    onNextClick: () -> Unit,
+    onBack: () -> Unit
+) {
+    var currentDate by remember { mutableStateOf(LocalDate.now()) }
+    var currentFilterOption by remember { mutableStateOf(FilterOption.MONTHLY) }
+
+    // Define the start and end dates based on the filter option
+    val startDate: LocalDate
+    val endDate: LocalDate
+
+    when (currentFilterOption) {
+        FilterOption.DAILY -> {
+            startDate = currentDate
+            endDate = currentDate
+        }
+        FilterOption.WEEKLY -> {
+            startDate = currentDate.with(java.time.DayOfWeek.MONDAY)
+            endDate = startDate.plusDays(6)
+        }
+        FilterOption.MONTHLY -> {
+            startDate = currentDate.withDayOfMonth(1)
+            endDate = currentDate.withDayOfMonth(currentDate.lengthOfMonth())
+        }
+    }
+
+    // Filter expense records based on the account type and the selected date range
+    val filteredRecords = expenseRecords.filter { !it.dateTime?.toLocalDate()?.isBefore(startDate)!! && !it.dateTime.toLocalDate().isAfter(endDate) }
+
+    // Group data by account type
+    val groupedData = filteredRecords.groupBy({ it.accountType }, { it.amount.toFloat() })
+    val data = groupedData.map { (accountType, amounts) ->
+        accountType to amounts.sum()
+    }
+
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        HeaderRecord(
+            currentDate = currentDate,
+            currentFilterOption = currentFilterOption,
+            onPrevClick = {
+                currentDate = when (currentFilterOption) {
+                    FilterOption.DAILY -> currentDate.minusDays(1)
+                    FilterOption.WEEKLY -> currentDate.minusWeeks(1)
+                    FilterOption.MONTHLY -> currentDate.minusMonths(1)
+                }
+            },
+            onNextClick = {
+                currentDate = when (currentFilterOption) {
+                    FilterOption.DAILY -> currentDate.plusDays(1)
+                    FilterOption.WEEKLY -> currentDate.plusWeeks(1)
+                    FilterOption.MONTHLY -> currentDate.plusMonths(1)
+                }
+            },
+            onFilterOptionSelected = {
+                currentFilterOption = it
+            }
+        )
+
+        CustomPieChart(
+            data = data,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            analysisType = "Account",
+            onBack = onBack
+        )
     }
 }
 
@@ -132,10 +211,24 @@ fun MyApp(expenseRecords: List<ExpenseRecordEntity>, onBack: () -> Unit) {
             onExpenseClick = {
                 analysisType = "Expense"
                 currentScreen = "analysis"
+            },
+            onAccountClick = {
+                analysisType = "Account"
+                currentScreen = "accountAnalysis"
             }
         )
         "analysis" -> AnalysisScreen(
             analysisType = analysisType,
+            expenseRecords = expenseRecords,
+            currentYearMonth = currentYearMonth,
+            onPrevClick = { currentYearMonth = currentYearMonth.minusMonths(1) },
+            onNextClick = { currentYearMonth = currentYearMonth.plusMonths(1) },
+            onBack = {
+                currentScreen = "main"
+                currentYearMonth = YearMonth.now()  // Reset to current month when going back
+            }
+        )
+        "accountAnalysis" -> AccountAnalysisScreen(
             expenseRecords = expenseRecords,
             currentYearMonth = currentYearMonth,
             onPrevClick = { currentYearMonth = currentYearMonth.minusMonths(1) },

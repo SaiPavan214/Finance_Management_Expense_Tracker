@@ -85,7 +85,7 @@ val expenseList: MutableList<Icon> = mutableListOf(
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun BudgetedCategoriesScreen(
-    navController:NavHostController,
+    navController: NavHostController,
     viewModel: ExpenseRecordsViewModel,
     expenseRecordsBudgeted: List<ExpenseRecordEntity>,
     onBack: () -> Unit,
@@ -132,7 +132,7 @@ fun BudgetedCategoriesScreen(
         expenseRecordsBudgeted
             .filter {
                 it.category == budgetedCategory.category &&
-                        YearMonth.from(it.date) == YearMonth.from(budgetedCategory.monthYear)
+                        YearMonth.from(it.dateTime) == YearMonth.from(budgetedCategory.monthYear)
             }
             .sumOf { it.amount }
     }
@@ -164,14 +164,14 @@ fun BudgetedCategoriesScreen(
         )
 
         if (filteredBudgetedCategories.isEmpty()) {
-            NoBudgetedCategoriesScreen(onBack)
+            NoBudgetedCategoriesScreen(onBack = onBack)
         } else {
             BudgetedCategoriesList(
-                filteredBudgetedCategories,
-                expenseRecordsBudgeted,
-                currentYearMonth,
-                ::handleEdit,
-                ::handleDelete
+                filteredBudgetedCategories = filteredBudgetedCategories,
+                expenseRecordsBudgeted = expenseRecordsBudgeted,
+                currentYearMonth = currentYearMonth,
+                onEditClick = ::handleEdit,
+                onDeleteClick = ::handleDelete
             )
         }
 
@@ -195,7 +195,7 @@ fun IncomeCard(totalIncome: Double) {
         modifier = Modifier
             .padding(16.dp)
             .fillMaxWidth()
-            .background(Color(0xFFE3F2FD), RoundedCornerShape(8.dp)) // Light blue background
+            .background(Color(0xFFE3F2FD), shape = RoundedCornerShape(8.dp))
             .padding(16.dp)
     ) {
         Column {
@@ -214,6 +214,7 @@ fun IncomeCard(totalIncome: Double) {
         }
     }
 }
+
 @Composable
 fun BudgetUtilizationProgressBar(
     totalBudgeted: Double,
@@ -259,15 +260,6 @@ fun BudgetUtilizationProgressBar(
     }
 }
 
-// Function to convert millimeters to dp
-@Composable
-fun mmToDp(mm: Float): Dp {
-    val mmInInches = mm / 25.4f // Convert mm to inches
-    val dpi = LocalDensity.current.density * 80 // Get the screen DPI (density)
-    val pixels = mmInInches * dpi // Convert inches to pixels
-    return with(LocalDensity.current) { pixels.toDp() }
-}
-
 // Function to format amount, ensuring responsive design
 fun formatAmount(amount: Double): String {
     return if (amount >= 1_000_000) {
@@ -278,6 +270,7 @@ fun formatAmount(amount: Double): String {
         String.format("%,.2f", amount)
     }
 }
+
 @Composable
 fun NoBudgetedCategoriesScreen(onBack: () -> Unit) {
     Column(
@@ -314,7 +307,7 @@ fun BudgetedCategoriesList(
             val totalSpent = expenseRecordsBudgeted
                 .filter {
                     it.category == category.category &&
-                            YearMonth.from(it.date) == YearMonth.from(category.monthYear)
+                            YearMonth.from(it.dateTime) == YearMonth.from(category.monthYear)
                 }
                 .sumOf { it.amount }
             totalSpent >= category.limit // True for over-limit categories
@@ -330,7 +323,7 @@ fun BudgetedCategoriesList(
             val totalSpent = expenseRecordsBudgeted
                 .filter {
                     it.category == budgetedCategory.category &&
-                            YearMonth.from(it.date) == YearMonth.from(budgetedCategory.monthYear)
+                            YearMonth.from(it.dateTime) == YearMonth.from(budgetedCategory.monthYear)
                 }
                 .sumOf { it.amount }
 
@@ -352,8 +345,6 @@ fun BudgetedCategoriesList(
         }
     }
 }
-
-
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -537,4 +528,3 @@ fun EditBudgetedCategoryDialog(
         }
     )
 }
-

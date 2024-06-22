@@ -41,4 +41,3 @@ fun TabLayout(tabs: List<String>, selectedTabIndex: Int, onTabSelected: (Int) ->
         }
     }
 }
-

@@ -274,4 +274,3 @@ fun TransactionRow(transaction: Transaction) {
         )
     }
 }
-

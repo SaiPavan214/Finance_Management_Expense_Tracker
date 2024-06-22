@@ -17,14 +17,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -41,29 +39,31 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
 data class Icon(val name: String, val resourceId: Int)
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AddIncomeOrExpense(
+    notificationRecord: ExpenseRecordEntity?=null,
     initialRecord: ExpenseRecordEntity? = null,
     onCancel: () -> Unit,
     onSave: (ExpenseRecordEntity) -> Unit,
     viewModel: ExpenseRecordsViewModel
 ) {
+    var notificationAmount by remember { mutableStateOf(notificationRecord?.amount?.toString() ?: "") }
+    var notificationIsIncome by remember { mutableStateOf(notificationRecord?.isIncome ?: true) }
     // Use initial record data if available
     var accountType by remember { mutableStateOf(initialRecord?.accountType ?: "") }
     var category by remember { mutableStateOf(initialRecord?.category ?: "") }
     var amount by remember { mutableStateOf(initialRecord?.amount?.toString() ?: "") }
     val dateTime by remember { mutableStateOf(initialRecord?.dateTime ?: LocalDateTime.now()) }
-    var isIncome by remember { mutableStateOf(initialRecord?.isIncome ?: true) }
     var notes by remember { mutableStateOf(initialRecord?.notes ?: "") }
     var errorMessage by remember { mutableStateOf("") }
-
+    var isIncome by remember { mutableStateOf(initialRecord?.isIncome ?: true) }
 
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
@@ -78,7 +78,7 @@ fun AddIncomeOrExpense(
     )
     val accountTypes = listOf("Card", "Cash", "Savings")
 
-    val textColor = if (isSystemInDarkTheme()) Color.White else Color.Black
+    val textColor = Color.Black
     val selectedColor = if (isSystemInDarkTheme()) Color(0xFFADD8E6) else Color(0xFFFFA500)
 
     val accountList = listOf(
@@ -123,7 +123,9 @@ fun AddIncomeOrExpense(
         }
         return true
     }
-
+    if(notificationRecord!=null&&notificationRecord.amount!=0.0){
+        viewModel.insertOrUpdateExpenseRecord(notificationRecord)
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -141,23 +143,34 @@ fun AddIncomeOrExpense(
                 onClick = {
                     if (validateInputs()) {
                         // Creating ExpenseRecordEntity based on isIncome
-                        val record = (if (isIncome) incomeList.find { it.name == category }?.resourceId
-                        else expenseList.find { it.name == category }?.resourceId
-                            ?: R.drawable.ic_account_balance_wallet)?.let {
-                            ExpenseRecordEntity(
-                                accountType = accountType,
-                                category = category,
-                                amount = amount.toDouble(),
-                                dateTime = dateTime,
-                                isIncome = isIncome,
-                                notes = notes,
-                                date = YearMonth.now(),
-                                icon = it
-                            )
+                        val record = if (isIncome) {
+                            incomeList.find { it.name == category }?.let {
+                                ExpenseRecordEntity(
+                                    accountType = accountType,
+                                    category = category,
+                                    amount = amount.toDouble(),
+                                    dateTime = dateTime,
+                                    isIncome = true,
+                                    notes = notes,
+                                    date = YearMonth.now(),
+                                    icon = it.resourceId
+                                )
+                            }
+                        } else {
+                            expenseList.find { it.name == category }?.let {
+                                ExpenseRecordEntity(
+                                    accountType = accountType,
+                                    category = category,
+                                    amount = amount.toDouble(),
+                                    dateTime = dateTime,
+                                    isIncome = false,
+                                    notes = notes,
+                                    date = YearMonth.now(),
+                                    icon = it.resourceId
+                                )
+                            }
                         }
-                        if (record != null) {
-                            onSave(record) // Verify ViewModel usage
-                        }
+                        record?.let { onSave(it) }
                     }
                 }
             ) {
@@ -165,54 +178,28 @@ fun AddIncomeOrExpense(
             }
         }
 
-        // Tabs: Income and Expense
+        // Buttons: Income and Expense
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            TextButton(
-                onClick = {
-                    isIncome = true
-                    accountType = ""
-                    category = ""
-                },
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = if (isIncome) MaterialTheme.colorScheme.primary else textColor
-                )
+            Button(
+                onClick = { isIncome = true },
+                modifier = Modifier.padding(8.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Income", fontSize = 18.sp)
-                    if (isIncome) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Selected",
-                            modifier = Modifier.size(18.dp),
-                            tint = selectedColor
-                        )
-                    }
-                }
+                Text(
+                    text = "Income",
+                    color = if (isIncome) Color.White else Color.Gray
+                )
             }
-            TextButton(
-                onClick = {
-                    isIncome = false
-                    accountType = ""
-                    category = ""
-                },
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = if (!isIncome) selectedColor else textColor
-                )
+            Button(
+                onClick = { isIncome = false },
+                modifier = Modifier.padding(8.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Expense", fontSize = 18.sp)
-                    if (!isIncome) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Selected",
-                            modifier = Modifier.size(18.dp),
-                            tint = selectedColor
-                        )
-                    }
-                }
+                Text(
+                    text = "Expense",
+                    color = if (!isIncome) Color.White else Color.Gray
+                )
             }
         }
 
@@ -228,22 +215,25 @@ fun AddIncomeOrExpense(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            DropdownMenuField(
+            SelectOptionField(
                 options = accountTypes,
                 selectedOption = accountType,
                 onOptionSelected = { accountType = it },
-                label = "Account Type",
-                passList = accountList,
-                modifier = Modifier.weight(1f).padding(end = 8.dp)
+                text = "Account Type",
+                iconList = accountList,
+                textColor = textColor,
+                backgroundColor = Color(0xFFF0F8FF) // Example background color
             )
 
-            DropdownMenuField(
+            // Category (Income or Expense)
+            SelectOptionField(
                 options = if (isIncome) incomeCategories else expenseCategories,
                 selectedOption = category,
                 onOptionSelected = { category = it },
-                label = "Category",
-                passList = if (isIncome) incomeList else expenseList,
-                modifier = Modifier.weight(1f).padding(start = 8.dp)
+                text = "Category",
+                iconList = if (isIncome) incomeList else expenseList,
+                textColor = textColor,
+                backgroundColor = Color(0xFFF0F8FF)
             )
         }
 
@@ -302,58 +292,76 @@ fun AddIncomeOrExpense(
     }
 }
 
-
 @Composable
-fun DropdownMenuField(
+fun SelectOptionField(
     options: List<String>,
     selectedOption: String,
     onOptionSelected: (String) -> Unit,
-    label: String,
-    passList: List<Icon>,
-    modifier: Modifier = Modifier
+    text: String,
+    iconList: List<Icon>,
+    textColor: Color,
+    backgroundColor: Color // Add backgroundColor parameter
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val backgroundColor = Color(0xFFADD8E6) // Light gray color
+    var showDialog by remember { mutableStateOf(false) }
+    val selectedIcon = iconList.find { it.name == selectedOption }?.resourceId
 
-    Box(modifier = modifier) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-                .background(backgroundColor)
-                .clickable { expanded = true },
-            color = backgroundColor
+    Box(
+        modifier = Modifier
+            .padding(vertical = 8.dp)
+            .clickable { showDialog = true }
+            .background(color = backgroundColor)// Use backgroundColor parameter here
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .clickable { expanded = true },
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(text = if (selectedOption.isEmpty()) label else selectedOption)
-                Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
+            selectedIcon?.let {
+                Image(
+                    painter = painterResource(id = it),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .padding(end = 8.dp) // Space between icon and text
+                )
             }
+            Text(
+                text = if (selectedOption.isEmpty()) text else selectedOption,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+            )
+            Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null)
         }
+    }
 
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            options.forEach { option ->
-                val icon = passList.find { it.name == option }
-                if (icon != null) {
-                    DropdownMenuItem(
-                        icon = icon.resourceId,
-                        text = option,
-                        onClick = {
-                            onOptionSelected(option)
-                            expanded = false
+    if (showDialog) {
+        // AlertDialog remains unchanged
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = {
+                Text(text = text)
+            },
+            text = {
+                Column {
+                    options.forEach { option ->
+                        val icon = iconList.find { it.name == option }
+                        if (icon != null) {
+                            DropdownMenuItem(
+                                icon = icon.resourceId,
+                                text = option,
+                                onClick = {
+                                    onOptionSelected(option)
+                                    showDialog = false
+                                }
+                            )
                         }
-                    )
+                    }
                 }
+            },
+            confirmButton = {
+                // No confirm button needed as selection handles closing
+            },
+            dismissButton = {
+                // No dismiss button needed as clicking outside handles closing
             }
-        }
+        )
     }
 }
 
@@ -376,7 +384,7 @@ fun DropdownMenuItem(
         ) {
             Image(
                 painter = painterResource(id = icon),
-                contentDescription = null, // Provide appropriate content description
+                contentDescription = null,
                 modifier = Modifier.size(24.dp)
             )
             Text(

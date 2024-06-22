@@ -55,7 +55,7 @@ fun sendBudgetExceededNotification(context: Context, category: String) {
     }
 }
 
-fun createNotificationChannel(context: Context) {
+fun createNotificationChannelBudget(context: Context) {
     // Create notification channel for Android O and above
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         val name = "Budget Exceed Notification"

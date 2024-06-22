@@ -1,5 +1,9 @@
+import android.annotation.SuppressLint
+import android.app.AlarmManager
 import android.app.DatePickerDialog
+import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -26,6 +30,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.example.financemanagementapp.Debt
+import com.example.financemanagementapp.NotificationScheduler
+import com.example.financemanagementapp.NotificationUtils
+
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
@@ -41,7 +48,7 @@ fun DebtForm(onAddDebt: (Debt) -> Unit) {
     var dateOfRepayment by remember { mutableStateOf(TextFieldValue()) }
     var dateError by remember { mutableStateOf<String?>(null) }
     var amountError by remember { mutableStateOf<String?>(null) }
-    var fromError by remember { mutableStateOf<String?>(null) }
+    var toError by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
@@ -61,6 +68,7 @@ fun DebtForm(onAddDebt: (Debt) -> Unit) {
         )
         datePickerDialog.show()
     }
+
     val customTextFieldColors: TextFieldColors = TextFieldDefaults.outlinedTextFieldColors(
         disabledTextColor = Color.Black,
         disabledBorderColor = Color.Black,
@@ -70,15 +78,21 @@ fun DebtForm(onAddDebt: (Debt) -> Unit) {
         unfocusedBorderColor = Color.Black,
         errorBorderColor = Color.Red
     )
+
     Column(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
             value = amount,
-            onValueChange = { amount = it },
+            onValueChange = {
+                amount = it
+                amountError = if (it.text.isEmpty()) "Amount cannot be empty" else null
+            },
             label = { Text("Amount") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp)
+                .padding(vertical = 4.dp),
+            isError = amountError != null,
+            colors = customTextFieldColors
         )
         if (amountError != null) {
             Text(
@@ -95,9 +109,9 @@ fun DebtForm(onAddDebt: (Debt) -> Unit) {
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
         )
-        if (fromError != null) {
+        if (toError != null) {
             Text(
-                text = fromError!!,
+                text = toError!!,
                 color = Color.Red,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
@@ -140,17 +154,28 @@ fun DebtForm(onAddDebt: (Debt) -> Unit) {
                 } else {
                     amountError = null
                 }
-                // Validate from field
+                // Validate to field
                 if (to.text.isEmpty()) {
-                    fromError = "To cannot be empty"
+                    toError = "To cannot be empty"
                 } else {
-                    fromError = null
+                    toError = null
                 }
-                if (amountError == null && fromError == null) {
+                if (amountError == null && toError == null) {
                     try {
                         val parsedDate = LocalDate.parse(dateOfRepayment.text)
                         val debt = Debt(amount.text.toDouble(), to.text, description.text, parsedDate)
                         onAddDebt(debt)
+                        // Schedule notification for the debt transaction
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            NotificationScheduler.scheduleNotification(
+                                context = context,
+                                transactionId = debt.hashCode().toLong(),
+                                isDebt = true,
+                                dateOfRepayment = parsedDate,
+                                person=to.text,
+                                amount=amount.text.toString()
+                            )
+                        }
                         dateError = null
                         amount = TextFieldValue("")
                         to = TextFieldValue("")
