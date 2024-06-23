@@ -1,10 +1,12 @@
 package com.example.financemanagementapp
 
+import SettingsViewModel
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,19 +19,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.darkColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -45,8 +50,6 @@ import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.text.font.FontStyle
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -54,7 +57,7 @@ fun ViewRecordsScreen(
     viewModel: ExpenseRecordsViewModel, // ViewModel to fetch expense records
     onEdit: (ExpenseRecordEntity) -> Unit,
     onDelete: (Long) -> Unit,
-    onBack: () -> Unit
+    settingsViewModel:SettingsViewModel
 ) {
     // Collect expenseRecords as State from the ViewModel
     val expenseRecords by viewModel.expenseRecords.collectAsState(emptyList())
@@ -99,11 +102,13 @@ fun ViewRecordsScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Displaying current month card
+        val currencySymbol = settingsViewModel.getCurrencySymbol()
         CurrentMonthCard(
             currentFilterOption = currentFilterOption,
             dateRange = dateRange,
             incomeRecords = filteredRecords.filter { it.isIncome },
-            expenseRecords = filteredRecords.filter { !it.isIncome }
+            expenseRecords = filteredRecords.filter { !it.isIncome },
+            currencySymbol = currencySymbol
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -282,16 +287,20 @@ fun ExpenseRecordItem(
     onEdit: (ExpenseRecordEntity) -> Unit,
     onDelete: (Long) -> Unit
 ) {
-    val color = if (record.isIncome) Color(0xFF4CAF50) else Color.Red
-    val sign = if (record.isIncome) "+" else "-"
-    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    val isDarkTheme = isSystemInDarkTheme()
+    val backgroundColor = if (isDarkTheme) Color.DarkGray else Color.LightGray
+    val textColor = if (isDarkTheme) Color.White else Color.Black
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 16.dp, horizontal = 8.dp)
-            .background(Color.LightGray, shape = MaterialTheme.shapes.small)
+            .background(backgroundColor, shape = MaterialTheme.shapes.small)
     ) {
+        val color = if (record.isIncome) Color(0xFF4CAF50) else Color.Red
+        val sign = if (record.isIncome) "+" else "-"
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+
         record.dateTime?.let {
             Text(
                 text = it.format(formatter),
@@ -326,16 +335,24 @@ fun ExpenseRecordItem(
                     .weight(1f)
                     .padding(8.dp)
             ) {
-                Text(text = record.category, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                Text(text = record.accountType, fontSize = 14.sp)
+                Text(
+                    text = record.category,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    color = textColor // Black color for category
+                )
+                Text(
+                    text = record.accountType,
+                    fontSize = 14.sp,
+                    color = textColor // Black color for account type
+                )
 
-//                // Display notes if present
                 record.notes?.let { notes ->
                     Text(
                         text = notes,
                         fontSize = 12.sp,
-                        color = Color.DarkGray, // Darker color for notes
-                        fontStyle = FontStyle.Italic, // Italic text style for notes
+                        color = textColor.copy(alpha = 0.8f), // Darker color for notes
+                        fontStyle = FontStyle.Italic,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
@@ -354,55 +371,67 @@ fun ExpenseRecordItem(
 
             Row(modifier = Modifier.padding(start = 8.dp)) {
                 IconButton(onClick = { onEdit(record) }) {
-                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit")
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", tint = Color.Black)
                 }
                 IconButton(onClick = { onDelete(record.id) }) {
-                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
+                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = Color.Black)
                 }
             }
         }
     }
 }
-
 @Composable
 fun FilterDialog(
     currentFilterOption: FilterOption,
     onFilterOptionSelected: (FilterOption) -> Unit,
     onDismissRequest: () -> Unit
 ) {
-    androidx.compose.material.AlertDialog(
-        onDismissRequest = onDismissRequest,
-        title = {
-            Text(text = "Select Filter Option")
-        },
-        text = {
-            Column {
-                FilterOption.values().forEach { option ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                onFilterOptionSelected(option)
-                                onDismissRequest()
+    androidx.compose.material.MaterialTheme( // Apply MaterialTheme for styling
+        colors = darkThemeColors // Use custom dark theme colors
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismissRequest,
+            title = {
+                Text(text = "Select Filter Option", color = Color.White) // White text color
+            },
+            text = {
+                Column {
+                    FilterOption.values().forEach { option ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onFilterOptionSelected(option)
+                                    onDismissRequest()
+                                }
+                                .padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (currentFilterOption == option) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected",
+                                    tint = Color.Green
+                                )
                             }
-                            .padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (currentFilterOption == option) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Selected",
-                                tint = Color.Green
-                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(text = option.name, fontSize = 18.sp, color = Color.White) // White text color
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = option.name, fontSize = 18.sp)
                     }
                 }
+            },
+            confirmButton = {
+                // Empty confirm button, actions are handled on item click
             }
-        },
-        confirmButton = {
-            // Empty confirm button, actions are handled on item click
-        }
-    )
+        )
+    }
 }
+
+private val darkThemeColors = darkColors( // Define custom dark theme colors
+    primary = Color.White, // Title and selected text color
+    onPrimary = Color.Black, // Background color
+    background = Color.Black, // Background color
+    surface = Color.Black, // Background color
+    onBackground = Color.White, // Dialog content text color
+    onSurface = Color.White // Dialog content text color
+)

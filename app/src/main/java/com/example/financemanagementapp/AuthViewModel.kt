@@ -44,7 +44,6 @@ class AuthViewModel(private val userRepository: UserRepository, context: Context
                 errorMessage = null
                 saveAuthState(true)
                 saveCurrentUser(newUser)
-                isAuthenticated = true
                 currentUser = newUser
             }
         }

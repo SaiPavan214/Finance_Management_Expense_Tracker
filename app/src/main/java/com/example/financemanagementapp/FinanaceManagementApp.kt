@@ -3,6 +3,7 @@ package com.example.financemanagementapp
 import AddNewCategoryDialog
 import BudgetedCategoriesScreen
 import MainLayout
+import SettingsViewModel
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
@@ -14,12 +15,15 @@ import androidx.navigation.compose.rememberNavController
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
-import androidx.navigation.NavController
+import com.example.finance_expense_tracker.ExpenseTrackerScreen
+import com.example.finance_expense_tracker.HelpScreen
+import com.example.finance_expense_tracker.SettingsScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double,isIncome:Boolean) {
     val viewModel = remember { ExpenseRecordsViewModel(context) }
+    val settingsViewModel=remember{SettingsViewModel(context)}
     val navController = rememberNavController()
 
     var recordToEdit by remember { mutableStateOf<ExpenseRecordEntity?>(null) }
@@ -39,7 +43,8 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
                         onViewRecordsClick = { navController.navigate("viewRecords") },
                         onSetBudgetClick = { navController.navigate("setBudget") },
                         onViewDebtsClick = { navController.navigate("debts") },
-                        onViewAnalysisClick = { navController.navigate("analysis") }
+                        onViewAnalysisClick = { navController.navigate("analysis") },
+                        settingsViewModel=settingsViewModel
                     )
                 }
             }
@@ -57,7 +62,7 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
                         onDelete = { recordId ->
                             viewModel.deleteExpenseRecord(recordId)
                         },
-                        onBack = { navController.popBackStack() }
+                        settingsViewModel=settingsViewModel
                     )
                 }
             }
@@ -91,7 +96,8 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
                         expenseRecordsBudgeted = expenseRecords,
                         onBack = { navController.popBackStack() },
                         viewModel = viewModel,
-                        categoryToEdit = categoryToEdit // Pass categoryToEdit here
+                        categoryToEdit = categoryToEdit,
+                        settingsViewModel = settingsViewModel
                     )
                 }
             }
@@ -152,7 +158,7 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
             )
         }
         composable("settings") {
-            SettingsScreen()
+            SettingsScreen(settingsViewModel)
         }
         composable("deleteReset") {
         }
@@ -162,11 +168,13 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
         composable("addCategories") {
             AddNewCategoryDialog(
                 onDismiss = { navController.popBackStack() },
-                onSaveCategory = { categoryName, iconId ->
-                    // Handle saving the new category here
-                    // For demonstration, just print the category name and iconId
-                    println("Category Name: $categoryName, Icon ID: $iconId")
-                    navController.popBackStack()
+                onSaveCategory = { categoryName, iconId, isIncome ->
+                    if(isIncome){
+                        viewModel.insertIncome(Income(name = categoryName, iconResId = iconId))
+                    }
+                    else{
+                        viewModel.insertExpense(Expense(name = categoryName, iconResId = iconId))
+                    }
                 }
             )
         }

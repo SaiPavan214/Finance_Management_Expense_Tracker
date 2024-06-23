@@ -1,4 +1,5 @@
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Column
@@ -9,7 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -96,15 +99,25 @@ fun SettingsMenu(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddNewCategoryDialog(
     onDismiss: () -> Unit,
-    onSaveCategory: (String, Int) -> Unit
+    onSaveCategory: (String, Int, Boolean) -> Unit
 ) {
+    val icons = remember { mutableStateListOf<Int>() }
+    var isIncome by remember { mutableStateOf(true) }
     var categoryName by remember { mutableStateOf(TextFieldValue()) }
     var selectedIconIndex by remember { mutableStateOf(0) }
-    val icons = listOf(
+
+    val incomeIcons = listOf(
+        R.drawable.farming,
+        R.drawable.real_estate,
+        R.drawable.internship,
+        R.drawable.gifts,
+        R.drawable.scholarship,
+        R.drawable.stocks,
+        R.drawable.business,
+        R.drawable.content_creation,
         R.drawable.trophy,
         R.drawable.coupons,
         R.drawable.grants,
@@ -114,44 +127,123 @@ fun AddNewCategoryDialog(
         R.drawable.salary,
         R.drawable.sale
     )
+    val expenseIcons = listOf(
+        R.drawable.donate,
+        R.drawable.fuel,
+        R.drawable.furniture,
+        R.drawable.gas,
+        R.drawable.tax,
+        R.drawable.vacation,
+        R.drawable.salary,
+        R.drawable.stationary,
+        R.drawable.wifi_bill,
+        R.drawable.milk_bottle,
+        R.drawable.beauty,
+        R.drawable.bill,
+        R.drawable.car_wash,
+        R.drawable.clothes_hanger,
+        R.drawable.education,
+        R.drawable.cpu,
+        R.drawable.confetti,
+        R.drawable.diet,
+        R.drawable.better_health,
+        R.drawable.house,
+        R.drawable.insurance,
+        R.drawable.bag,
+        R.drawable.social_media,
+        R.drawable.trophy,
+        R.drawable.transportation
+    )
+
+    LaunchedEffect(isIncome) {
+        icons.clear()
+        icons.addAll(if (isIncome) incomeIcons else expenseIcons)
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(text = "Add New Category")
+            Text(text = "Add New Category", style = androidx.compose.material.MaterialTheme.typography.h3)
         },
         text = {
-            Column {
+            Column(
+                modifier = Modifier.padding(10.dp)
+            ) {
                 OutlinedTextField(
                     value = categoryName,
                     onValueChange = { categoryName = it },
                     label = { Text("Category Name") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = "Select Icon:")
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                ) {
+                    Text(text = "Type:", style = androidx.compose.material.MaterialTheme.typography.body1)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Expense",
+                            style = androidx.compose.material.MaterialTheme.typography.body1
+                        )
+                        Switch(
+                            checked = isIncome,
+                            onCheckedChange = { isIncome = it },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onBackground,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.onBackground,
+                            ),
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                        Text(
+                            text = "Income",
+                            style = androidx.compose.material.MaterialTheme.typography.body1
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(text = "Select Icon:", style = androidx.compose.material.MaterialTheme.typography.body1)
                 Spacer(modifier = Modifier.height(8.dp))
-                LazyRow(
-                    modifier = Modifier.padding(bottom = 16.dp)
+                LazyHorizontalGrid(
+                    rows= GridCells.Fixed(2),
+                    modifier = Modifier
+                        .padding(vertical = 16.dp)
+                        .height(140.dp)
                 ) {
                     items(icons.size) { index ->
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .padding(start = if (index == 0) 16.dp else 8.dp)
+                                .padding(8.dp)
                                 .clickable {
                                     selectedIconIndex = index
                                 }
                                 .size(56.dp)
                                 .background(
-                                    color = if (selectedIconIndex == index) Color.LightGray else Color.Transparent,
-                                    shape = MaterialTheme.shapes.small
+                                    color = if (selectedIconIndex == index) MaterialTheme.colorScheme.primary.copy(
+                                        alpha = 0.2f
+                                    ) else Color.Transparent,
+                                    shape = CircleShape
+                                )
+                                .border(
+                                    width = 2.dp,
+                                    color = if (selectedIconIndex == index) MaterialTheme.colorScheme.primary else Color.Gray,
+                                    shape = CircleShape
                                 )
                         ) {
                             Icon(
                                 painter = painterResource(id = icons[index]),
                                 contentDescription = null,
-                                modifier = Modifier.size(24.dp)
+                                modifier = Modifier.size(32.dp),
+                                tint = Color.Unspecified
                             )
                         }
                     }
@@ -161,20 +253,21 @@ fun AddNewCategoryDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    onSaveCategory(categoryName.text, icons[selectedIconIndex])
+                    onSaveCategory(categoryName.text, icons[selectedIconIndex], isIncome)
                     onDismiss()
-                }
+                },
+                modifier = Modifier.padding(8.dp)
             ) {
                 Text(text = "Save")
             }
         },
         dismissButton = {
-            Button(
-                onClick = onDismiss
+            OutlinedButton(
+                onClick = onDismiss,
+                modifier = Modifier.padding(8.dp)
             ) {
                 Text(text = "Cancel")
             }
         }
     )
 }
-

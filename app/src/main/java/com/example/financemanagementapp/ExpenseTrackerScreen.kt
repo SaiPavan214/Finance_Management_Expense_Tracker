@@ -1,5 +1,6 @@
-package com.example.financemanagementapp
+package com.example.finance_expense_tracker
 
+import SettingsViewModel
 import TabLayout
 import android.app.DatePickerDialog
 import android.content.Context
@@ -17,12 +18,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -38,9 +39,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.financemanagementapp.CurrentMonthCard
+import com.example.financemanagementapp.ExpenseRecordEntity
+import com.example.financemanagementapp.ExpenseRecordsViewModel
+import com.example.financemanagementapp.FilterOption
+import com.example.financemanagementapp.HeaderRecord
+import com.example.financemanagementapp.R
 import java.time.LocalDate
-import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,7 +57,8 @@ fun ExpenseTrackerScreen(
     onViewRecordsClick: () -> Unit,
     onSetBudgetClick: () -> Unit,
     onViewDebtsClick: () -> Unit,
-    onViewAnalysisClick: () -> Unit
+    onViewAnalysisClick: () -> Unit,
+    settingsViewModel:SettingsViewModel
 ) {
     val viewModel: ExpenseRecordsViewModel = remember {
         ExpenseRecordsViewModel(navController.context)
@@ -143,11 +149,13 @@ fun ExpenseTrackerScreen(
             }
 
             // Current month card
+            val currencySymbol = settingsViewModel.getCurrencySymbol()
             CurrentMonthCard(
                 currentFilterOption = currentFilterOption,
                 dateRange = dateRange,
                 incomeRecords = filteredIncomeRecords,
-                expenseRecords = filteredExpenseRecords
+                expenseRecords = filteredExpenseRecords,
+                currencySymbol = currencySymbol
             )
 
             Column(

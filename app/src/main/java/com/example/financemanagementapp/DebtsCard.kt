@@ -4,6 +4,7 @@ import CreditForm
 import DebtForm
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.financemanagementapp.R
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -88,7 +91,7 @@ fun DebtsScreen(onBack:()->Unit,viewModel: ExpenseRecordsViewModel) {
                             containerColor = Color.LightGray
                         )
                     ) {
-                        Text(text = "Transaction History", fontSize = 16.sp)
+                        Text(text = "Transaction History", fontSize = 16.sp,color=Color.Black)
                     }
                     Row {
                         TabButton(
@@ -124,6 +127,7 @@ fun DebtsScreen(onBack:()->Unit,viewModel: ExpenseRecordsViewModel) {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 fun updateAllTransactions(
     viewModel: ExpenseRecordsViewModel,
     debtTransactions: List<Debt>,
@@ -192,22 +196,25 @@ fun TransactionScreen(transactions: List<Transaction>, onBack: () -> Unit, viewM
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (transactions.isEmpty()) {
-                Text(
-                    text = "No transaction history",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(16.dp)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = onBack,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Blue,
-                        contentColor = Color.White
-                    ),
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Text(text = "Go Back")
+                    Image(
+                        painter = painterResource(id = R.drawable.transaction),
+                        contentDescription = "No Transactions",
+                        modifier = Modifier.size(100.dp) // Adjust the size as needed
+                    )
+                    Text(
+                        text = "No transaction history",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(16.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             } else {
 //                val allTransaction by viewModel.transactionRecord.collectAsState()

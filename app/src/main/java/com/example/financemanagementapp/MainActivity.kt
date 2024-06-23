@@ -9,19 +9,12 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
-import androidx.compose.runtime.Composable
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import android.widget.Toast
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import com.example.financemanagementapp.ui.theme.FinanceManagementAppTheme
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
@@ -32,9 +25,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.NotificationCompat
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.example.financemanagementapp.ui.theme.FinanceManagementAppTheme
 import kotlinx.coroutines.delay
-import android.util.Log
 
 class MainActivity : ComponentActivity() {
 
@@ -48,14 +47,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         createNotificationChannelBudget(this)
-        // Create notification channel if necessary
         createNotificationChannel(this)
-
-        // Request necessary permissions
         requestPermissions()
     }
 
-    // Request SMS and notification permissions
     @RequiresApi(Build.VERSION_CODES.O)
     private fun requestPermissions() {
         val permissionsNeeded = mutableListOf<String>()
@@ -70,45 +65,81 @@ class MainActivity : ComponentActivity() {
 
         if (permissionsNeeded.isNotEmpty()) {
             ActivityCompat.requestPermissions(this, permissionsNeeded.toTypedArray(), SMS_PERMISSION_REQUEST_CODE)
+            proceedToApp()
         } else {
-            // All permissions already granted, proceed to set the content view
             proceedToApp()
         }
     }
 
-    // Handle the result of permission requests
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == SMS_PERMISSION_REQUEST_CODE) {
-            var allPermissionsGranted = true
-            for (result in grantResults) {
-                if (result != PackageManager.PERMISSION_GRANTED) {
-                    allPermissionsGranted = false
-                    break
+        when (requestCode) {
+            SMS_PERMISSION_REQUEST_CODE -> {
+                if (permissions.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "SMS Permission granted.", Toast.LENGTH_SHORT).show()
+                    proceedToApp()
+                } else {
+                    Toast.makeText(this, "SMS Permission denied.", Toast.LENGTH_SHORT).show()
+                    // Handle denial or provide alternative flow
+                    // Example: Show explanation or disable SMS-related functionality
                 }
             }
-
-            if (allPermissionsGranted) {
-                Toast.makeText(this, "Permissions granted.", Toast.LENGTH_SHORT).show()
-                // Proceed to set the content view
-                proceedToApp()
-            } else {
-                Toast.makeText(this, "Permissions denied.", Toast.LENGTH_SHORT).show()
-                proceedToApp()
+            NOTIFICATION_PERMISSION_REQUEST_CODE -> {
+                // Handle notification permission if needed
+                if (permissions.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Notification Permission granted.", Toast.LENGTH_SHORT).show()
+                    // Proceed with any actions that require this permission
+                } else {
+                    Toast.makeText(this, "Notification Permission denied.", Toast.LENGTH_SHORT).show()
+                    // Handle denial or provide alternative flow
+                    // Example: Show explanation or disable notification-related functionality
+                }
             }
         }
     }
 
-    // Proceed to set the content view and handle any incoming intent
+
     @RequiresApi(Build.VERSION_CODES.O)
     private fun proceedToApp() {
-        // Handle any incoming intent
         handleIncomingIntent(intent)
-
-        // Set the content view using Jetpack Compose
         setContent {
             FinanceManagementAppTheme {
+                val viewModel: ExpenseRecordsViewModel by viewModels { ExpenseRecordsViewModelFactory(applicationContext) }
+                val incomeList = listOf(
+                    Income(name = "Awards", iconResId = R.drawable.trophy),
+                    Income(name = "Coupons", iconResId = R.drawable.coupons),
+                    Income(name = "Grants", iconResId = R.drawable.grants),
+                    Income(name = "Lottery", iconResId = R.drawable.lottery),
+                    Income(name = "Refunds", iconResId = R.drawable.refund),
+                    Income(name = "Rental", iconResId = R.drawable.rental),
+                    Income(name = "Salary", iconResId = R.drawable.salary),
+                    Income(name = "Sale", iconResId = R.drawable.sale)
+                )
+
+                val expenseList = listOf(
+                    Expense(name = "Baby", iconResId = R.drawable.milk_bottle),
+                    Expense(name = "Beauty", iconResId = R.drawable.beauty),
+                    Expense(name = "Bills", iconResId = R.drawable.bill),
+                    Expense(name = "Car", iconResId = R.drawable.car_wash),
+                    Expense(name = "Clothing", iconResId = R.drawable.clothes_hanger),
+                    Expense(name = "Education", iconResId = R.drawable.education),
+                    Expense(name = "Electronics", iconResId = R.drawable.cpu),
+                    Expense(name = "Entertainment", iconResId = R.drawable.confetti),
+                    Expense(name = "Food", iconResId = R.drawable.diet),
+                    Expense(name = "Health", iconResId = R.drawable.better_health),
+                    Expense(name = "Home", iconResId = R.drawable.house),
+                    Expense(name = "Insurance", iconResId = R.drawable.insurance),
+                    Expense(name = "Shopping", iconResId = R.drawable.bag),
+                    Expense(name = "Social", iconResId = R.drawable.social_media),
+                    Expense(name = "Sport", iconResId = R.drawable.trophy),
+                    Expense(name = "Transportation", iconResId = R.drawable.transportation)
+                )
+
+                LaunchedEffect(Unit) {
+                    viewModel.insertInitialData(incomeList, expenseList)
+                }
+
                 val navController = rememberNavController()
                 val userDao = AppDatabase.getInstance(applicationContext).loginRegisterDao()
                 val userRepository = UserRepository(userDao)
@@ -131,13 +162,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Create the notification channel for API 26+
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel(context: Context) {
         val channel = NotificationChannel(
             CHANNEL_ID,
             "Finance Notifications",
-            NotificationManager.IMPORTANCE_HIGH // Set to high to ensure notifications are shown
+            NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Notifications for finance management"
             enableLights(true)
@@ -148,7 +178,6 @@ class MainActivity : ComponentActivity() {
         notificationManager.createNotificationChannel(channel)
     }
 
-    // Handle incoming intents
     private fun handleIncomingIntent(intent: Intent?) {
         intent?.let {
             if (it.action == Intent.ACTION_VIEW) {
@@ -159,7 +188,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AuthenticationFlow(

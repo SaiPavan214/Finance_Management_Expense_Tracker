@@ -42,4 +42,6 @@
     <color name="cyan">#00FFFF</color>
     <color name="orange_red">#FF4500</color>
     <color name="chartreuse">#7FFF00</color>
+
+    <color name="light_salmon">#FFA07A</color>
 </resources>
