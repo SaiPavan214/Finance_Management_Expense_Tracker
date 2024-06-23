@@ -1,5 +1,6 @@
 package com.example.financemanagementapp
 
+import AddNewCategoryDialog
 import BudgetedCategoriesScreen
 import MainLayout
 import android.annotation.SuppressLint
@@ -159,6 +160,15 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
             HelpScreen()
         }
         composable("addCategories") {
+            AddNewCategoryDialog(
+                onDismiss = { navController.popBackStack() },
+                onSaveCategory = { categoryName, iconId ->
+                    // Handle saving the new category here
+                    // For demonstration, just print the category name and iconId
+                    println("Category Name: $categoryName, Icon ID: $iconId")
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }
