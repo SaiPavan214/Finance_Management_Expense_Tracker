@@ -12,16 +12,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 
 @Composable
 fun LoginScreen(
     onLoginSuccess: (String, String) -> Unit,
     onNavigateToRegister: () -> Unit,
-    authViewModel: AuthViewModel
+    authViewModel: AuthViewModel,
+    navController: NavController // Inject NavController from your navigation component
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val errorMessage = authViewModel.errorMessage
+
+    LaunchedEffect(authViewModel.isAuthenticated) {
+        if (authViewModel.isAuthenticated) {
+            navController.navigate("main") {
+                popUpTo("login") { inclusive = true }
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -29,11 +40,10 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Login Screen", style = androidx.compose.material.MaterialTheme.typography.h5)
+        Text("Login Screen", style = MaterialTheme.typography.h5)
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Display error message if not null
         errorMessage?.let { message ->
             Text(message, color = Color.Red)
             Spacer(modifier = Modifier.height(8.dp))
@@ -77,6 +87,7 @@ fun LoginScreen(
         }
     }
 }
+
 
 
 
@@ -141,7 +152,6 @@ fun RegistrationScreen(
             // Check if passwords match
             if (password != confirmPassword) {
                 authViewModel.errorMessage = "Passwords do not match!"
-                return@Button
             }
 
             // Check if username and password fields are not empty
@@ -150,7 +160,6 @@ fun RegistrationScreen(
                 authViewModel.checkUserExists(username)
                 if (authViewModel.errorMessage != null) {
                     // If user already exists, do not proceed with registration
-                    return@Button
                 }
 
                 // Register user if all validations pass
@@ -171,7 +180,6 @@ fun RegistrationScreen(
         }
     }
 }
-
 
 
 

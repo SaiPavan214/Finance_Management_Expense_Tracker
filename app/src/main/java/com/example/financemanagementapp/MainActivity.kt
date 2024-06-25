@@ -233,7 +233,8 @@ fun AuthenticationFlow(
                     authViewModel.errorMessage = null
                     navController.navigate("register")
                 },
-                authViewModel = authViewModel
+                authViewModel = authViewModel,
+                navController = navController
             )
         }
         composable("main") {

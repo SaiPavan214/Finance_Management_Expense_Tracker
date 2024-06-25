@@ -1,3 +1,5 @@
+// App-level build.gradle.kts
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -51,15 +53,18 @@ android {
 }
 
 dependencies {
-    implementation ("androidx.compose.material:material-icons-extended:<compose_version>")
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation ("androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha07")
+
     val nav_version = "2.7.5"
     val compose_version = "1.6.0-alpha06"
     val room = "2.6.0"
 
-    // Room
+    // Other dependencies
+    implementation("androidx.compose.material:material-icons-extended:$compose_version")
+    implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:1.0.0-alpha07")
+
+
     implementation("androidx.room:room-runtime:$room")
     implementation("androidx.room:room-ktx:$room")
     kapt("androidx.room:room-compiler:$room")
@@ -89,7 +94,6 @@ dependencies {
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
-    implementation ("androidx.compose.material3:material3:1.2.1")
+    implementation("androidx.compose.material3:material3:1.2.1")
     implementation("androidx.compose.material:material:1.0.5")
-
 }
