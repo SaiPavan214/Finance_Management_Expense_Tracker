@@ -154,6 +154,7 @@ class MainActivity : ComponentActivity() {
                     proceedToApp()
                 } else {
                     Toast.makeText(this, "Permissions denied. Some features may not work.", Toast.LENGTH_SHORT).show()
+                    proceedToApp()
                 }
             }
         }

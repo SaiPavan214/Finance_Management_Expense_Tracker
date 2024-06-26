@@ -55,7 +55,6 @@ import com.example.financemanagementapp.ExpenseRecordEntity
 import com.example.financemanagementapp.ExpenseRecordsViewModel
 import com.example.financemanagementapp.Header
 import com.example.financemanagementapp.Icon
-import com.example.financemanagementapp.R
 import com.example.financemanagementapp.sendBudgetExceededNotification
 import java.time.YearMonth
 
