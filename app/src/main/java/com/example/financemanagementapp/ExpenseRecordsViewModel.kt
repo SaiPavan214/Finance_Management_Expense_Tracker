@@ -2,6 +2,8 @@ package com.example.financemanagementapp
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
@@ -9,8 +11,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import android.util.Log
-import androidx.annotation.RequiresApi
 
 
 @RequiresApi(Build.VERSION_CODES.O)

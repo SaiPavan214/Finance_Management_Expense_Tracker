@@ -14,5 +14,6 @@ data class BudgetedCategory(
     val spent: Double,
     val remaining: Double,
     val monthYear: YearMonth,
-    val dateTime: LocalDateTime
+    val dateTime: LocalDateTime,
+    val userId: String // Include userId as a field in BudgetedCategory
 )

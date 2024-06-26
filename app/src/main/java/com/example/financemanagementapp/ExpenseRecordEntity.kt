@@ -18,5 +18,6 @@ data class ExpenseRecordEntity(
     val isIncome: Boolean,
     val icon: Int=R.drawable.credit_card,
     val date:YearMonth= YearMonth.now(),
-    val notes:String=""
+    val notes:String="",
+    val userId:String,
 )

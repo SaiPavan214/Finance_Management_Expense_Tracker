@@ -1,4 +1,4 @@
-package com.example.finance_expense_tracker
+package com.example.financemanagementapp
 
 import SettingsViewModel
 import TabLayout
@@ -39,11 +39,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.financemanagementapp.CurrentMonthCard
-import com.example.financemanagementapp.ExpenseRecordEntity
-import com.example.financemanagementapp.ExpenseRecordsViewModel
-import com.example.financemanagementapp.FilterOption
-import com.example.financemanagementapp.HeaderRecord
 import com.example.financemanagementapp.R
 import java.time.LocalDate
 import java.util.Calendar

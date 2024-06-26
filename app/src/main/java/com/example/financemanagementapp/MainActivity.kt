@@ -1,5 +1,4 @@
 package com.example.financemanagementapp
-
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -16,10 +15,15 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -27,15 +31,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.financemanagementapp.ui.theme.FinanceManagementAppTheme
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.delay
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var auth: FirebaseAuth
+    private lateinit var firestore: FirebaseFirestore
 
     companion object {
         private const val SMS_PERMISSION_REQUEST_CODE = 101
@@ -48,107 +60,68 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         createNotificationChannelBudget(this)
         createNotificationChannel(this)
-        requestPermissions()
+        FirebaseApp.initializeApp(this)
+        requestSmsPermissions()
+        // Initialize Firebase Auth and Firestore
+        auth = FirebaseAuth.getInstance()
+        firestore = FirebaseFirestore.getInstance()
+
     }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun requestPermissions() {
-        val permissionsNeeded = mutableListOf<String>()
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.READ_SMS)
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-
-        if (permissionsNeeded.isNotEmpty()) {
-            ActivityCompat.requestPermissions(this, permissionsNeeded.toTypedArray(), SMS_PERMISSION_REQUEST_CODE)
-            proceedToApp()
-        } else {
-            proceedToApp()
-        }
-    }
-
-    @RequiresApi(Build.VERSION_CODES.O)
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            SMS_PERMISSION_REQUEST_CODE -> {
-                if (permissions.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "SMS Permission granted.", Toast.LENGTH_SHORT).show()
-                    proceedToApp()
-                } else {
-                    Toast.makeText(this, "SMS Permission denied.", Toast.LENGTH_SHORT).show()
-                    // Handle denial or provide alternative flow
-                    // Example: Show explanation or disable SMS-related functionality
-                }
-            }
-            NOTIFICATION_PERMISSION_REQUEST_CODE -> {
-                // Handle notification permission if needed
-                if (permissions.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "Notification Permission granted.", Toast.LENGTH_SHORT).show()
-                    // Proceed with any actions that require this permission
-                } else {
-                    Toast.makeText(this, "Notification Permission denied.", Toast.LENGTH_SHORT).show()
-                    // Handle denial or provide alternative flow
-                    // Example: Show explanation or disable notification-related functionality
-                }
-            }
-        }
-    }
-
 
     @RequiresApi(Build.VERSION_CODES.O)
     private fun proceedToApp() {
         handleIncomingIntent(intent)
         setContent {
             FinanceManagementAppTheme {
-                val viewModel: ExpenseRecordsViewModel by viewModels { ExpenseRecordsViewModelFactory(applicationContext) }
+                val auth: FirebaseAuth = FirebaseAuth.getInstance()
+                val firebaseUser: FirebaseUser? = auth.currentUser
+                val currentUser = firebaseUser.toString()
+
+                val viewModel: ExpenseRecordsViewModel by viewModels {
+                    ExpenseRecordsViewModelFactory(
+                        applicationContext
+                    )
+                }
                 val incomeList = listOf(
-                    Income(name = "Awards", iconResId = R.drawable.trophy),
-                    Income(name = "Coupons", iconResId = R.drawable.coupons),
-                    Income(name = "Grants", iconResId = R.drawable.grants),
-                    Income(name = "Lottery", iconResId = R.drawable.lottery),
-                    Income(name = "Refunds", iconResId = R.drawable.refund),
-                    Income(name = "Rental", iconResId = R.drawable.rental),
-                    Income(name = "Salary", iconResId = R.drawable.salary),
-                    Income(name = "Sale", iconResId = R.drawable.sale)
+                    Income(name = "Awards", iconResId = R.drawable.trophy, userId = currentUser),
+                    Income(name = "Coupons", iconResId = R.drawable.coupons, userId = currentUser),
+                    Income(name = "Grants", iconResId = R.drawable.grants, userId = currentUser),
+                    Income(name = "Lottery", iconResId = R.drawable.lottery, userId = currentUser),
+                    Income(name = "Refunds", iconResId = R.drawable.refund, userId = currentUser),
+                    Income(name = "Rental", iconResId = R.drawable.rental, userId = currentUser),
+                    Income(name = "Salary", iconResId = R.drawable.salary, userId = currentUser),
+                    Income(name = "Sale", iconResId = R.drawable.sale, userId = currentUser)
                 )
 
                 val expenseList = listOf(
-                    Expense(name = "Baby", iconResId = R.drawable.milk_bottle),
-                    Expense(name = "Beauty", iconResId = R.drawable.beauty),
-                    Expense(name = "Bills", iconResId = R.drawable.bill),
-                    Expense(name = "Car", iconResId = R.drawable.car_wash),
-                    Expense(name = "Clothing", iconResId = R.drawable.clothes_hanger),
-                    Expense(name = "Education", iconResId = R.drawable.education),
-                    Expense(name = "Electronics", iconResId = R.drawable.cpu),
-                    Expense(name = "Entertainment", iconResId = R.drawable.confetti),
-                    Expense(name = "Food", iconResId = R.drawable.diet),
-                    Expense(name = "Health", iconResId = R.drawable.better_health),
-                    Expense(name = "Home", iconResId = R.drawable.house),
-                    Expense(name = "Insurance", iconResId = R.drawable.insurance),
-                    Expense(name = "Shopping", iconResId = R.drawable.bag),
-                    Expense(name = "Social", iconResId = R.drawable.social_media),
-                    Expense(name = "Sport", iconResId = R.drawable.trophy),
-                    Expense(name = "Transportation", iconResId = R.drawable.transportation)
+                    Expense(name = "Baby", iconResId = R.drawable.milk_bottle, userId = currentUser),
+                    Expense(name = "Beauty", iconResId = R.drawable.beauty, userId = currentUser),
+                    Expense(name = "Bills", iconResId = R.drawable.bill, userId = currentUser),
+                    Expense(name = "Car", iconResId = R.drawable.car_wash, userId = currentUser),
+                    Expense(name = "Clothing", iconResId = R.drawable.clothes_hanger, userId = currentUser),
+                    Expense(name = "Education", iconResId = R.drawable.education, userId = currentUser),
+                    Expense(name = "Electronics", iconResId = R.drawable.cpu, userId = currentUser),
+                    Expense(name = "Entertainment", iconResId = R.drawable.confetti, userId = currentUser),
+                    Expense(name = "Food", iconResId = R.drawable.diet, userId = currentUser),
+                    Expense(name = "Health", iconResId = R.drawable.better_health, userId = currentUser),
+                    Expense(name = "Home", iconResId = R.drawable.house, userId = currentUser),
+                    Expense(name = "Insurance", iconResId = R.drawable.insurance, userId = currentUser),
+                    Expense(name = "Shopping", iconResId = R.drawable.bag, userId = currentUser),
+                    Expense(name = "Social", iconResId = R.drawable.social_media, userId = currentUser),
+                    Expense(name = "Sport", iconResId = R.drawable.trophy, userId = currentUser),
+                    Expense(name = "Transportation", iconResId = R.drawable.transportation, userId = currentUser)
                 )
 
                 LaunchedEffect(Unit) {
                     viewModel.insertInitialData(incomeList, expenseList)
                 }
-
+                val database = AppDatabase.getDatabase(applicationContext)
+                val expenseDao = database.expenseDao()
                 val navController = rememberNavController()
-                val userDao = AppDatabase.getInstance(applicationContext).loginRegisterDao()
-                val userRepository = UserRepository(userDao)
-                val authViewModel: AuthViewModel = viewModel(factory = AuthViewModelFactory(userRepository, applicationContext))
-
                 val categoryToEdit = intent.getStringExtra("category_to_edit")
                 val amount = intent.getDoubleExtra("amount", 0.0)
                 val isIncome = intent.getBooleanExtra("isIncome", true)
-
+                val authViewModel=AuthViewModel(applicationContext,auth,firestore)
                 AuthenticationFlow(
                     navController,
                     authViewModel,
@@ -162,6 +135,31 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun requestSmsPermissions() {
+        val permissions = arrayOf(
+            Manifest.permission.RECEIVE_SMS,
+            Manifest.permission.READ_SMS,
+            Manifest.permission.SEND_SMS
+        )
+        ActivityCompat.requestPermissions(this, permissions, SMS_PERMISSION_REQUEST_CODE)
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            SMS_PERMISSION_REQUEST_CODE -> {
+                val allGranted = grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+                if (allGranted) {
+                    proceedToApp()
+                } else {
+                    Toast.makeText(this, "Permissions denied. Some features may not work.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+
     @RequiresApi(Build.VERSION_CODES.O)
     private fun createNotificationChannel(context: Context) {
         val channel = NotificationChannel(
@@ -174,7 +172,8 @@ class MainActivity : ComponentActivity() {
             lightColor = Color.RED
             enableVibration(true)
         }
-        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.createNotificationChannel(channel)
     }
 
@@ -201,7 +200,7 @@ fun AuthenticationFlow(
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable("splash") {
-            SplashScreen(navController, context)
+            SplashScreen(navController = navController, context = context)
         }
         composable("register") {
             RegistrationScreen(
@@ -222,27 +221,31 @@ fun AuthenticationFlow(
         composable("login") {
             LoginScreen(
                 onLoginSuccess = { username, password ->
-                    authViewModel.authenticate(username, password)
-                    if (authViewModel.isAuthenticated) {
-                        navController.navigate("main") {
-                            popUpTo("login") { inclusive = true }
+                    authViewModel.authenticate(
+                        username = username as String,
+                        password = password as String,
+                        onSuccess = {
+                            navController.navigate("main") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        },
+                        onError = { error ->
+                            // Handle error, for example, show error message
                         }
-                    }
+                    )
                 },
                 onNavigateToRegister = {
-                    authViewModel.errorMessage = null
                     navController.navigate("register")
                 },
-                authViewModel = authViewModel,
-                navController = navController
+                authViewModel = authViewModel
             )
         }
         composable("main") {
             FinanceManagementApp(
-                context,
-                categoryToEdit,
-                amount,
-                isIncome
+                context = context,
+                categoryToEdit = categoryToEdit,
+                amount = amount,
+                isIncome = isIncome
             )
         }
     }
@@ -275,7 +278,7 @@ fun SplashScreen(navController: NavHostController, context: Context) {
             Text(
                 text = "FinanceManagementApp",
                 fontSize = 24.sp,
-                style = MaterialTheme.typography.headlineLarge
+                style = androidx.compose.material.MaterialTheme.typography.h4
             )
         }
     }
@@ -284,9 +287,59 @@ fun SplashScreen(navController: NavHostController, context: Context) {
 // Function to check if it's the first launch
 fun isFirstLaunch(context: Context): Boolean {
     val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    val isFirstLaunch = prefs.getBoolean("isFirstLaunch", true)
-    if (isFirstLaunch) {
-        prefs.edit().putBoolean("isFirstLaunch", false).apply()
+    var isFirstLaunch = prefs.getBoolean("isFirstLaunch", true)
+
+    if (!isFirstLaunch) {
+        // Reset isFirstLaunch if the user has already launched the app
+        val authStatePrefs = context.getSharedPreferences("auth_state", Context.MODE_PRIVATE)
+        val isAuthenticated = authStatePrefs.getBoolean("is_authenticated", false)
+
+        if (isAuthenticated) {
+            isFirstLaunch = true
+            prefs.edit().putBoolean("isFirstLaunch", isFirstLaunch).apply()
+        }
     }
+
     return isFirstLaunch
 }
+
+
+@Composable
+fun RequestPermissions(
+    context: Context,
+    onPermissionsResult: (Boolean) -> Unit
+) {
+    val permissionsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.values.all { it }
+        onPermissionsResult(allGranted)
+    }
+
+    LaunchedEffect(Unit) {
+        val permissionsNeeded = mutableListOf<String>()
+
+        if (ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.READ_SMS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsNeeded.add(Manifest.permission.READ_SMS)
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionsNeeded.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        if (permissionsNeeded.isNotEmpty()) {
+            permissionsLauncher.launch(permissionsNeeded.toTypedArray())
+        } else {
+            onPermissionsResult(true)
+        }
+    }
+}
+

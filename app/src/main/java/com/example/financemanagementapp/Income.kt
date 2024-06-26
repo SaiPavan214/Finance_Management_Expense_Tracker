@@ -8,5 +8,6 @@ data class Income(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0L,
     val name: String,
-    val iconResId: Int
+    val iconResId: Int,
+    val userId:String
 )

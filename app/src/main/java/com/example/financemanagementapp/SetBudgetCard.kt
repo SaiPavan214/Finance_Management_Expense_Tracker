@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.financemanagementapp.R
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import java.time.LocalDateTime
 import java.time.YearMonth
 
@@ -60,6 +62,9 @@ fun SetBudgetCard(
     viewModel: ExpenseRecordsViewModel
 ) {
     FinanceExpenseTrackerTheme {
+        val auth: FirebaseAuth = FirebaseAuth.getInstance()
+        val firebaseUser: FirebaseUser? = auth.currentUser
+        val currentUser = firebaseUser.toString()
         var selectedMonthYear by rememberSaveable { mutableStateOf(YearMonth.now()) }
         var isDialogVisible by rememberSaveable { mutableStateOf(false) }
         var selectedCategory by rememberSaveable { mutableStateOf<String?>(null) }
@@ -157,7 +162,8 @@ fun SetBudgetCard(
                         dateTime = LocalDateTime.now(),
                         spent = 0.0,
                         remaining = limit,
-                        monthYear = selectedMonthYear
+                        monthYear = selectedMonthYear,
+                        userId = currentUser
                     )
                     onAddBudgetCategory(newBudgetedCategory)
                     isDialogVisible = false
@@ -224,6 +230,9 @@ fun SetBudgetDialog(
     onSetBudget: (Double) -> Unit,
     expenseIcons:List<Icon>
 ) {
+    val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    val firebaseUser: FirebaseUser? = auth.currentUser
+    val currentUser = firebaseUser.toString()
     var budgetLimit by remember { mutableStateOf("") }
     val iconImage = expenseIcons.find { it.name == category }
     var errorMessage by remember { mutableStateOf("") }
@@ -311,7 +320,8 @@ fun SetBudgetDialog(
                                 dateTime = LocalDateTime.now(),
                                 spent = 0.0,
                                 remaining = limit,
-                                monthYear = YearMonth.now()
+                                monthYear = YearMonth.now(),
+                                userId = currentUser
                             )
                             viewModel.insertOrUpdateBudgetedCategory(newBudgetedCategory)
                             onSetBudget(limit)

@@ -4,6 +4,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("kotlin-kapt")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -54,6 +55,8 @@ android {
 
 dependencies {
 
+    implementation("com.google.firebase:firebase-auth:23.0.0")
+    implementation("com.google.firebase:firebase-firestore-ktx:25.0.0")
     val nav_version = "2.7.5"
     val compose_version = "1.6.0-alpha06"
     val room = "2.6.0"

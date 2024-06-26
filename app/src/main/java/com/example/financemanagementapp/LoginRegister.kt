@@ -1,37 +1,38 @@
-
 package com.example.financemanagementapp
-import androidx.compose.foundation.layout.*
+import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.Button
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (String, String) -> Unit,
+    onLoginSuccess: (Any?, Any?) -> Unit,
     onNavigateToRegister: () -> Unit,
-    authViewModel: AuthViewModel,
-    navController: NavController // Inject NavController from your navigation component
+    authViewModel: AuthViewModel
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    val errorMessage = authViewModel.errorMessage
-
-    LaunchedEffect(authViewModel.isAuthenticated) {
-        if (authViewModel.isAuthenticated) {
-            navController.navigate("main") {
-                popUpTo("login") { inclusive = true }
-            }
-        }
-    }
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -44,7 +45,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        errorMessage?.let { message ->
+        authViewModel.errorMessage?.let { message ->
             Text(message, color = Color.Red)
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -52,7 +53,7 @@ fun LoginScreen(
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
-            label = { Text("Username") },
+            label = { Text("Email") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -73,7 +74,12 @@ fun LoginScreen(
         ) {
             Button(onClick = {
                 if (username.isNotEmpty() && password.isNotEmpty()) {
-                    onLoginSuccess(username, password)
+                    authViewModel.loginUser(username, password, {
+                        Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
+                        onLoginSuccess(username,password)
+                    }, {
+                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                    })
                 }
             }) {
                 Text("Login")
@@ -89,8 +95,6 @@ fun LoginScreen(
 }
 
 
-
-
 @Composable
 fun RegistrationScreen(
     onRegisterSuccess: () -> Unit,
@@ -100,7 +104,7 @@ fun RegistrationScreen(
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
-    val errorMessage = authViewModel.errorMessage
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -113,8 +117,7 @@ fun RegistrationScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Display error message if not null
-        errorMessage?.let { message ->
+        authViewModel.errorMessage?.let { message ->
             Text(message, color = Color.Red)
             Spacer(modifier = Modifier.height(8.dp))
         }
@@ -122,7 +125,7 @@ fun RegistrationScreen(
         OutlinedTextField(
             value = username,
             onValueChange = { username = it },
-            label = { Text("Username") },
+            label = { Text("Email") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -149,24 +152,17 @@ fun RegistrationScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = {
-            // Check if passwords match
             if (password != confirmPassword) {
                 authViewModel.errorMessage = "Passwords do not match!"
-            }
-
-            // Check if username and password fields are not empty
-            else if (username.isNotEmpty() && password.isNotEmpty()) {
-                // Check if user already exists
-                authViewModel.checkUserExists(username)
-                if (authViewModel.errorMessage != null) {
-                    // If user already exists, do not proceed with registration
-                }
-
-                // Register user if all validations pass
-                authViewModel.registerUser(username, password)
-                onRegisterSuccess()
+                return@Button
+            } else if (username.isNotEmpty() && password.isNotEmpty()) {
+                authViewModel.registerUser(username, password, {
+                    Toast.makeText(context, "Registration successful", Toast.LENGTH_SHORT).show()
+                    onRegisterSuccess()
+                }, {
+                    Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                })
             } else {
-                // Handle empty fields scenario
                 authViewModel.errorMessage = "Please fill in all fields."
             }
         }) {
@@ -180,7 +176,4 @@ fun RegistrationScreen(
         }
     }
 }
-
-
-
 

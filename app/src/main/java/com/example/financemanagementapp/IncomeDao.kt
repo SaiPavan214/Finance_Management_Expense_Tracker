@@ -19,4 +19,3 @@ interface IncomeDao {
     @Query("SELECT * FROM income_table")
     suspend fun getAllIncomes(): List<Income>
 }
-

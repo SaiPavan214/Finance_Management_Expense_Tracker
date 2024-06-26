@@ -1,135 +1,90 @@
 package com.example.financemanagementapp
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.compose.runtime.*
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
-class AuthViewModel(private val userRepository: UserRepository, context: Context) : ViewModel() {
+class AuthViewModel(
+    private val context: Context,
+    private val auth: FirebaseAuth,
+    private val firestore: FirebaseFirestore
+) : ViewModel() {
 
-    private val prefs: SharedPreferences = context.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
+    var isAuthenticated: Boolean = false
+        get() = auth.currentUser != null
 
-    var isAuthenticated by mutableStateOf(getAuthState())
-        private set
-
-    var currentUser by mutableStateOf<RegisterEntity?>(loadCurrentUser())
-        private set
-
-    var errorMessage by mutableStateOf<String?>(null)
-
-    var isOperationInProgress by mutableStateOf(false)
-        private set
-
-    // Check if a user with the given username already exists
-    fun checkUserExists(username: String) {
-        viewModelScope.launch {
-            val user = userRepository.getUserByUsername(username)
-            errorMessage = if (user != null) "User already exists. Please Login!" else null
-        }
-    }
-
-    // Simulated registration process
-    suspend fun register(username: String, password: String, confirmPassword: String) {
-        if (isOperationInProgress) return
-        isOperationInProgress = true
-        try {
-            // Simulated registration
-            if (password == confirmPassword && userRepository.getUserByUsername(username) == null) {
-                userRepository.registerUser(RegisterEntity(username = username, password = password, confirmPassword = password))
-            }
-        } finally {
-            isOperationInProgress = false
-        }
-    }
-
-    // Register a new user
-    fun registerUser(username: String, password: String) {
-        if (isOperationInProgress) return
-        isOperationInProgress = true
-        viewModelScope.launch {
-            try {
-                val existingUser = userRepository.getUserByUsername(username)
-                if (existingUser != null) {
-                    errorMessage = "User already exists! Please Login"
-                } else {
-                    val newUser = RegisterEntity(username = username, password = password, confirmPassword = password)
-                    userRepository.registerUser(newUser)
-                    errorMessage = null
-                    saveAuthState(true)
-                    saveCurrentUser(newUser)
-                    currentUser = newUser
-                }
-            } finally {
-                isOperationInProgress = false
-            }
-        }
-    }
-
-    // Authenticate user with username and password
-    fun authenticate(username: String, password: String) {
-        if (isOperationInProgress) return
-        isOperationInProgress = true
-        viewModelScope.launch {
-            try {
-                val user = userRepository.authenticateUser(username, password)
-                if (user != null) {
-                    isAuthenticated = true
-                    currentUser = user
-                    errorMessage = null
-                    saveAuthState(true)
-                    saveCurrentUser(user)
-                } else {
-                    errorMessage = "Invalid username or password!"
-                }
-            } finally {
-                isOperationInProgress = false
-            }
-        }
-    }
-
-    // Logout the current user
+    var errorMessage: String? = null
     fun logout() {
-        isAuthenticated = false
-        currentUser = null
-        clearAuthState()
-        clearCurrentUser()
+        auth.signOut()
+        isAuthenticated=false
+        saveAuthState(false) // Clear saved auth state
+        val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("isFirstLaunch", true).apply()
     }
 
-    // Get authentication state from SharedPreferences
-    private fun getAuthState(): Boolean {
-        return prefs.getBoolean("isAuthenticated", false)
+    fun registerUser(username: String, password: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        auth.createUserWithEmailAndPassword(username, password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onSuccess()
+                } else {
+                    errorMessage = task.exception?.message
+                    onError(errorMessage ?: "Registration failed")
+                }
+            }
     }
 
-    // Save authentication state to SharedPreferences
-    fun saveAuthState(authState: Boolean) {
-        prefs.edit().putBoolean("isAuthenticated", authState).apply()
+    fun loginUser(username: String, password: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        auth.signInWithEmailAndPassword(username, password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onSuccess()
+                    val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                    prefs.edit().putBoolean("isFirstLaunch", false).apply()
+                } else {
+                    errorMessage = task.exception?.message
+                    onError(errorMessage ?: "Login failed")
+                }
+            }
     }
 
-    // Load current user from SharedPreferences
-    private fun loadCurrentUser(): RegisterEntity? {
-        val username = prefs.getString("username", null) ?: return null
-        val password = prefs.getString("password", null) ?: return null
-        return RegisterEntity(username = username, password = password, confirmPassword = password)
+    fun checkUserExists(username: String, onExists: () -> Unit, onNotExists: () -> Unit) {
+        val userDocRef = firestore.collection("users").document(username)
+        userDocRef.get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    errorMessage = "User already exists!"
+                    onExists()
+                } else {
+                    onNotExists()
+                }
+            }
+            .addOnFailureListener {
+                errorMessage = it.message
+                onNotExists()
+            }
     }
 
-    // Save current user to SharedPreferences
-    private fun saveCurrentUser(user: RegisterEntity) {
-        prefs.edit().putString("username", user.username)
-            .putString("password", user.password)
-            .apply()
+    fun saveAuthState(isAuthenticated: Boolean) {
+        // Example: Save authentication state in SharedPreferences
+        val sharedPref = context.getSharedPreferences("auth_state", Context.MODE_PRIVATE)
+        with(sharedPref.edit()) {
+            putBoolean("is_authenticated", isAuthenticated)
+            apply()
+        }
     }
 
-    // Clear authentication state from SharedPreferences
-    private fun clearAuthState() {
-        prefs.edit().remove("isAuthenticated").apply()
+    fun authenticate(username: String, password: String, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        auth.signInWithEmailAndPassword(username, password)
+            .addOnCompleteListener { task ->
+                if (task.isSuccessful) {
+                    onSuccess()
+                } else {
+                    errorMessage = task.exception?.message
+                    onError(errorMessage ?: "Login failed")
+                }
+            }
     }
 
-    // Clear current user from SharedPreferences
-    private fun clearCurrentUser() {
-        prefs.edit().remove("username")
-            .remove("password")
-            .apply()
-    }
 }

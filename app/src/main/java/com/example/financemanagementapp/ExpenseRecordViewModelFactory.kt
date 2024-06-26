@@ -5,6 +5,8 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 
 class ExpenseRecordsViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     @RequiresApi(Build.VERSION_CODES.O)
@@ -16,3 +18,4 @@ class ExpenseRecordsViewModelFactory(private val context: Context) : ViewModelPr
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
+

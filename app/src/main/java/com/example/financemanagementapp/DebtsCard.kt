@@ -37,14 +37,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.financemanagementapp.R
-import java.time.LocalDate
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
@@ -55,7 +54,9 @@ fun DebtsScreen(onBack:()->Unit,viewModel: ExpenseRecordsViewModel) {
     val (creditTransactions, setCreditTransactions) = remember { mutableStateOf(listOf<Credit>()) }
     val (allTransactions, setAllTransactions) = remember { mutableStateOf<List<Transaction>>(emptyList()) }
     val (showTransactionScreen, setShowTransactionScreen) = remember { mutableStateOf(false) }
-
+    val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    val firebaseUser: FirebaseUser? = auth.currentUser
+    val currentUser = firebaseUser.toString()
     if (showTransactionScreen) {
         val allTransaction by viewModel.transactionRecord.collectAsState()
         TransactionScreen(transactions = allTransaction, onBack = {
@@ -134,13 +135,17 @@ fun updateAllTransactions(
     creditTransactions: List<Credit>,
     setAllTransactions: (List<Transaction>) -> Unit
 ) {
+    val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    val firebaseUser: FirebaseUser? = auth.currentUser
+    val currentUser = firebaseUser.toString()
     val allTransactions = (debtTransactions.map { transaction ->
         Transaction(
             amount = transaction.amount,
             toOrFrom = transaction.to,
             description = transaction.description,
             dateOfRepayment = transaction.dateOfRepayment,
-            isDebt = true
+            isDebt = true,
+            userId = currentUser
         )
     } + creditTransactions.map { transaction ->
         Transaction(
@@ -148,7 +153,8 @@ fun updateAllTransactions(
             toOrFrom = transaction.from,
             description = transaction.description,
             dateOfRepayment = transaction.dateOfRepayment,
-            isDebt = false
+            isDebt = false,
+            userId = currentUser
         )
     }).sortedBy { it.dateOfRepayment }
 

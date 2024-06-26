@@ -1,5 +1,4 @@
 package com.example.financemanagementapp
-
 import AddNewCategoryDialog
 import BudgetedCategoriesScreen
 import MainLayout
@@ -8,16 +7,18 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.animation.Crossfade
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.Modifier
-import com.example.finance_expense_tracker.ExpenseTrackerScreen
 import com.example.finance_expense_tracker.HelpScreen
 import com.example.finance_expense_tracker.SettingsScreen
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.firestore.FirebaseFirestore
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -25,13 +26,17 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
     val viewModel = remember { ExpenseRecordsViewModel(context) }
     val settingsViewModel=remember{SettingsViewModel(context)}
     val navController = rememberNavController()
-
     var recordToEdit by remember { mutableStateOf<ExpenseRecordEntity?>(null) }
     var budgetedCategories by remember { mutableStateOf(mutableListOf<BudgetedCategory>()) }
+    val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    val firebaseUser: FirebaseUser? = auth.currentUser
+    val firestore = FirebaseFirestore.getInstance()
+    val currentUser = firebaseUser.toString()
+    val authViewModel= remember {AuthViewModel(context,auth,firestore)}
 
     NavHost(navController = navController, startDestination = "expenseTracker") {
         composable("expenseTracker") { backStackEntry ->
-            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") }) {
+            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") },authViewModel=authViewModel) {
                 CrossfadeScreen(backStackEntry.id) {
                     val expenseRecords by viewModel.expenseRecords.collectAsState()
                     ExpenseTrackerScreen(
@@ -50,7 +55,7 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
             }
         }
         composable("viewRecords") { backStackEntry ->
-            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") }) {
+            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") },authViewModel=authViewModel) {
                 CrossfadeScreen(backStackEntry.id) {
                     val expenseRecords by viewModel.expenseRecords.collectAsState()
                     ViewRecordsScreen(
@@ -68,7 +73,7 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
             }
         }
         composable("setBudget") { backStackEntry ->
-            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") }) {
+            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") },authViewModel=authViewModel) {
                 CrossfadeScreen(backStackEntry.id) {
                     val expenseRecords by viewModel.expenseRecords.collectAsState()
                     SetBudgetCard(
@@ -88,7 +93,7 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
             }
         }
         composable("budgetedCategories") { backStackEntry ->
-            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") }) {
+            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") },authViewModel=authViewModel) {
                 CrossfadeScreen(backStackEntry.id) {
                     val expenseRecords by viewModel.expenseRecords.collectAsState()
                     BudgetedCategoriesScreen(
@@ -109,7 +114,8 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
                     notificationRecord=ExpenseRecordEntity(
                         amount = amount,
                         isIncome = isIncome,
-                        category = if(isIncome) "Credit" else "Debit"
+                        category = if(isIncome) "Credit" else "Debit",
+                        userId = currentUser
                     ),
                     initialRecord = recordToEdit,
                     onCancel = { navController.popBackStack() },
@@ -125,14 +131,14 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
             }
         }
         composable("debts") { backStackEntry ->
-            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") }) {
+            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") },authViewModel=authViewModel) {
                 CrossfadeScreen(backStackEntry.id) {
                     DebtsScreen(onBack = { navController.popBackStack() }, viewModel)
                 }
             }
         }
         composable("analysis") { backStackEntry ->
-            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") }) {
+            MainLayout(navController = navController, onViewFilterClick = { navController.navigate("filter") },authViewModel=authViewModel) {
                 CrossfadeScreen(backStackEntry.id) {
                     val expenseRecords by viewModel.expenseRecords.collectAsState()
                     MyApp(
@@ -141,6 +147,52 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
                     )
                 }
             }
+        }
+        composable("main") {
+            FinanceManagementApp(
+                context = context,
+                categoryToEdit = categoryToEdit,
+                amount = amount,
+                isIncome = isIncome
+            )
+        }
+        composable("register") {
+            RegistrationScreen(
+                onRegisterSuccess = {
+                    authViewModel.saveAuthState(true)
+                    navController.navigate("login") {
+                        popUpTo("register") { inclusive = true }
+                    }
+                },
+                authViewModel = authViewModel,
+                onNavigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("register") { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable("login") {
+            LoginScreen(
+                onLoginSuccess = { username, password ->
+                    authViewModel.authenticate(
+                        username = username as String,
+                        password = password as String,
+                        onSuccess = {
+                            navController.navigate("main") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        },
+                        onError = { error ->
+                            // Handle error, for example, show error message
+                        }
+                    )
+                },
+                onNavigateToRegister = {
+                    navController.navigate("register")
+                },
+                authViewModel = authViewModel
+            )
         }
         composable("filter") {
             val expenseRecords by viewModel.expenseRecords.collectAsState()
@@ -170,10 +222,10 @@ fun FinanceManagementApp(context: Context, categoryToEdit: String?,amount:Double
                 onDismiss = { navController.popBackStack() },
                 onSaveCategory = { categoryName, iconId, isIncome ->
                     if(isIncome){
-                        viewModel.insertIncome(Income(name = categoryName, iconResId = iconId))
+                        viewModel.insertIncome(Income(name = categoryName, iconResId = iconId, userId = currentUser))
                     }
                     else{
-                        viewModel.insertExpense(Expense(name = categoryName, iconResId = iconId))
+                        viewModel.insertExpense(Expense(name = categoryName, iconResId = iconId, userId = currentUser))
                     }
                 }
             )

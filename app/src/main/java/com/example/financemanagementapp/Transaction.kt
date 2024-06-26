@@ -12,5 +12,6 @@ data class Transaction(
     val toOrFrom: String,
     val description: String,
     @ColumnInfo(name = "date_of_repayment") val dateOfRepayment: LocalDate,
-    val isDebt: Boolean
+    val isDebt: Boolean,
+    val userId: String // Add userId to associate transactions with users
 )

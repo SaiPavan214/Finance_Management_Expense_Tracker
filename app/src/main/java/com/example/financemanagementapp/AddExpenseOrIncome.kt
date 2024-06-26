@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -27,7 +29,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -44,8 +45,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.times
 import androidx.compose.ui.window.DialogProperties
-import com.example.financemanagementapp.R
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import java.time.LocalDateTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
@@ -62,6 +65,9 @@ fun AddIncomeOrExpense(
     onSave: (ExpenseRecordEntity) -> Unit,
     viewModel: ExpenseRecordsViewModel
 ) {
+    val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    val firebaseUser: FirebaseUser? = auth.currentUser
+    val currentUser = firebaseUser.toString()
     var notificationAmount by remember { mutableStateOf(notificationRecord?.amount?.toString() ?: "") }
     var notificationIsIncome by remember { mutableStateOf(notificationRecord?.isIncome ?: true) }
     var accountType by remember { mutableStateOf(initialRecord?.accountType ?: "") }
@@ -143,7 +149,8 @@ fun AddIncomeOrExpense(
                                     isIncome = true,
                                     notes = notes,
                                     date = YearMonth.now(),
-                                    icon = it.iconResId
+                                    icon = it.iconResId,
+                                    userId = currentUser
                                 )
                             }
                         } else {
@@ -156,7 +163,8 @@ fun AddIncomeOrExpense(
                                     isIncome = false,
                                     notes = notes,
                                     date = YearMonth.now(),
-                                    icon = it.iconResId
+                                    icon = it.iconResId,
+                                    userId = currentUser
                                 )
                             }
                         }
@@ -328,8 +336,16 @@ fun SelectOptionField(
                 Text(text = text)
             },
             text = {
-                // Wrap the content in a LazyColumn for scrollability
-                LazyColumn {
+                // Use calculated height to determine the LazyColumn height
+                val calculatedHeight = 10 * 48.dp // Assuming each item takes ~48.dp
+
+                LazyColumn(
+                    modifier = if (options.size > 10) {
+                        Modifier.height(calculatedHeight)
+                    } else {
+                        Modifier.wrapContentHeight()
+                    }
+                ) {
                     items(options) { option ->
                         val icon = iconList.find { it.name == option }
                         if (icon != null) {
@@ -358,6 +374,7 @@ fun SelectOptionField(
         )
     }
 }
+
 
 @Composable
 fun DropdownMenuItem(
