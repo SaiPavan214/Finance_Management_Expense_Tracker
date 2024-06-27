@@ -96,12 +96,12 @@ fun DebtsScreen(onBack:()->Unit,viewModel: ExpenseRecordsViewModel) {
                     }
                     Row {
                         TabButton(
-                            text = "Debt",
+                            text = "Pay",
                             selected = selectedTab == 0,
                             onClick = { selectedTab = 0 }
                         )
                         TabButton(
-                            text = "Credit",
+                            text = "Receive",
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 }
                         )
