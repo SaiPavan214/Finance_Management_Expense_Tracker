@@ -65,7 +65,6 @@ class MainActivity : ComponentActivity() {
         // Initialize Firebase Auth and Firestore
         auth = FirebaseAuth.getInstance()
         firestore = FirebaseFirestore.getInstance()
-
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
