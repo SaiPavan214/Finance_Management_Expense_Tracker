@@ -98,12 +98,13 @@ fun AddIncomeOrExpense(
     val expenseCategories = expenseList.map{
         it.name
     }
-    val accountTypes = listOf("Card", "Cash", "Savings")
+    val accountTypes = listOf("Upi", "Card", "Cash", "Savings")
 
     val textColor = Color.Black
     val selectedColor = if (isSystemInDarkTheme()) Color(0xFFADD8E6) else Color(0xFFFFA500)
 
     val accountList = listOf(
+        Icon("Upi",R.drawable.upi),
         Icon("Card", R.drawable.credit_card),
         Icon("Cash", R.drawable.money),
         Icon("Savings", R.drawable.piggy_bank)

@@ -296,6 +296,8 @@ fun BudgetedCategoriesList(
     onDeleteClick: (BudgetedCategory) -> Unit,
     expenseIcons: List<Icon>
 ) {
+    val context = LocalContext.current
+
     val sortedCategories = remember(filteredBudgetedCategories) {
         filteredBudgetedCategories.sortedByDescending { category ->
             val totalSpent = expenseRecordsBudgeted
@@ -322,8 +324,8 @@ fun BudgetedCategoriesList(
                 .sumOf { it.amount }
 
             val isOverLimit = totalSpent > budgetedCategory.limit
+
             if (isOverLimit) {
-                val context = LocalContext.current
                 sendBudgetExceededNotification(context, budgetedCategory.category)
             }
 
@@ -335,11 +337,12 @@ fun BudgetedCategoriesList(
                 isOverLimit,
                 onEditClick = { onEditClick(it) },
                 onDeleteClick = { onDeleteClick(it) },
-                expenseIcons=expenseIcons
+                expenseIcons = expenseIcons
             )
         }
     }
 }
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable

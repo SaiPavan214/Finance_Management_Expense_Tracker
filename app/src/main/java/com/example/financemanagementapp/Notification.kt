@@ -12,12 +12,16 @@ import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.example.financemanagementapp.R
 
 const val CHANNEL_ID = "budget_exceed_channel"
 const val NOTIFICATION_ID = 1
 
 fun sendBudgetExceededNotification(context: Context, category: String) {
-    // Create an intent to open MainActivity when notification is clicked
+    // Create notification channel if it does not exist
+    createNotificationChannelBudget(context)
+
+    // Create an intent to open MainActivity when the notification is clicked
     val intent = Intent(context, MainActivity::class.java).apply {
         putExtra("category_to_edit", category)
     }
@@ -42,16 +46,19 @@ fun sendBudgetExceededNotification(context: Context, category: String) {
     // Get an instance of NotificationManagerCompat
     val notificationManager = NotificationManagerCompat.from(context)
 
-    // Check for notification permission and send notification if granted
-    if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
-        notificationManager.notify(NOTIFICATION_ID, notification)
+    // Send notification if permission is granted, otherwise request permission
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            notificationManager.notify(NOTIFICATION_ID, notification)
+        } else {
+            ActivityCompat.requestPermissions(
+                context as Activity,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                1
+            )
+        }
     } else {
-        // Request notification permission if not already granted
-        ActivityCompat.requestPermissions(
-            context as Activity,
-            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-            1
-        )
+        notificationManager.notify(NOTIFICATION_ID, notification)
     }
 }
 
